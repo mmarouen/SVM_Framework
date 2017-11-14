@@ -1,8 +1,8 @@
 #svm predictor
 
-predictRkhs<-function(Input, #test data
-                      rkhs #rkhs model
-                      ){
+predictRkhs<-function(Input, #input matrix
+                      rkhs #model
+                     ){
   X=as.matrix(Input)
   gamm=rkhs$rkhsargs$gamm
   degree=rkhs$rkhsargs$degree
@@ -16,7 +16,10 @@ predictRkhs<-function(Input, #test data
   alphahat=rkhs$beta
   beta0=alphahat[1]
   fx=beta0+Ker%*%as.matrix(alphahat[-1])
-  yhat=rep(-1,nrow(Input))
-  yhat[fx>0]=1
+  opType=rkhs$rkhsargs$opType
+  CL=rkhs$rkhsargs$classes
+  out=transformOutput(fx,opType,CL)
+  yhat=out$yhat
   return(yhat)
 }
+
