@@ -3,7 +3,7 @@
 RKHS<-function(Input, #covariates
               Y, #response vector
               opType='Classification', #classification or regression
-              loss='hingeLoss', #loss function used. If binary classification, then algorithm implicitely uses huberized hingeloss
+              classifier='SVM', #can use SVM or softmax classifiers
               kernel='linear', #kernel type
               degree=3, #polynomial degree
               gamm=1, #gamma used in gaussian kernel
@@ -13,9 +13,9 @@ RKHS<-function(Input, #covariates
               epochs=400, #number of iterations
               traceObj=F, #trace loss function for gradient descent
               gradCheck=F, #analytical gradient check
-              optMode='BGD' #reslve using BGD or SGD
+              optMode='NGD' #NGD=Newton-raphson optimization, CGD:Conjugate gradient descent
               ){
-  
+    
   rsp=transformResponse(Y,opType)
   resp=rsp$respMat
   X=as.matrix(Input)
@@ -33,19 +33,18 @@ RKHS<-function(Input, #covariates
   
   lambd=1/C
 
-  if(opType=='Regression'){
+  if(opType=='Regression' & classifier=='LS'){
     inv=invMat(t(H)%*%H+lambd*S)
     betahat=inv%*%t(H)%*%resp
   }
   
   if(opType=='Classification'){
-    if(optMode=='BGD'){
-      out=BGD(X,resp,H,S,loss,lambd,learning_rate,tol,epochs,traceObj,gradCheck)
-    }
-    if(optMode=='SGD'){
-      out=SGD(X,resp,H,S,loss,lambd,tol,epochs,traceObj)
-    }
-    betahat=out$beta
+    if(optMode=='BGD') out=BGD(X,resp,H,S,classifier,lambd,learning_rate,tol,epochs,traceObj,gradCheck)
+    if(optMode=='SGD') out=SGD(X,resp,H,S,classifier,lambd,tol,epochs,traceObj)
+    if(optMode=='NGD') out=NGD(X,resp,Ker,classifier,lambd,tol,epochs)
+    if(optMode=='CGD') out=CGD(X,resp,Ker,H,S,classifier,lambd,tol,epochs)
+    
+    betahat=out$betahat
     lossCurve=out$lossCurve
     n_iter=out$n_iter
     gradsErr=out$gradsErr
@@ -56,7 +55,7 @@ RKHS<-function(Input, #covariates
   out=transformOutput(f_x,opType,rsp$CL)
   yhat=out$yhat
   modelargs=list(kername=kernel,gamm=gamm,degree=degree,X=X,y=resp,epochs=epochs,
-                 lambd=lambd)
+                 lambd=lambd,classes=rsp$CL,opType=opType)
   return(list(yhat=yhat,fx=f_x,yhatMat=out$yhatMat,beta=betahat,sv=sv,rkhsargs=modelargs,
               lossCurve=lossCurve,n_iter=n_iter,gradsErr=gradsErr))
 }
