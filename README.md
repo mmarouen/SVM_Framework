@@ -1,13 +1,18 @@
 # SVM_Framework
 Support vector machines flexible framework  
 We solve the unconstrained primal SVM formulation using representer theorem  
-That is, we use different types of Kernels: linear, gaussian and Polynomial.  
-Customized kernels can be easily added as well.  
-The framework supports several features with several updates ongoing:  
-1. Binary classification:  
--huberized loss minimization using newton optimization  
--Implementation of SGD using pegasos algorithm  
-2. Multiclass classification:  
-SVM hinge loss minimization using gradient descent  
-Convergence time for this mode is slow. I'll provide faster implementations asap.  
-3. Regression  
+The framework is flexible  
+#1. Classifiers/regressors:  
+NB: multinomial classification under dev  
+LS: regression classifier using penalized least squared loss  
+Softmax: Softmax classifier using cross entropy loss  
+SVM:svm classifier using quadratic hinge loss  
+#2. Optimization methods:  
+BGD: gradient descent (batch)  
+NGD: Newton-Raphson optimization (batch)  
+CGD: conjugate gradient descent (batch)    
+SGD: stochastic gradient descent (under development)  
+#3. Kernels:  
+gaussian: gaussian kernel  
+linear: linear kernel  
+poly:polynomial kernel  
