@@ -1,7 +1,6 @@
 # SVM_Framework
 Support vector machines flexible framework  
 We solve the unconstrained primal SVM formulation using representer theorem  
-The framework is flexible  
 # 1. Classifiers/regressors:  
 NB: multinomial classification under dev  
 LS: regression classifier using penalized least squared loss  
