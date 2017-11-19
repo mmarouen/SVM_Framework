@@ -2,6 +2,8 @@
 
 CGD<-function(X, #input matrix
               resp, #response matrix
+              XT,#test matrix
+              respT,#test response
               Ker,H,S, #kernel matrices
               classifier, #'SVM' or 'Softmax' classifier
               lambd, #regularizer
@@ -13,32 +15,45 @@ CGD<-function(X, #input matrix
   betahat=c()
   t=1
   loss=c()
+  
   if(classifier=="SVM" & K==1){
-    sv1=rep(TRUE,N)
-    I0=diag(sv1)
-    A=2*(lambd*S+t(H)%*%I0%*%H)
-    b=2*t(H)%*%I0%*%resp
-    beta_old=rep(0,(N+1))
-    yhat=H%*%beta_old
-    obj0=objective(classifier,beta_old,Ker,resp,yhat,lambd)
-    loss=obj0
+    sv=rep(TRUE,N)
+    sv1=c()
+    I0=diag(sv)
+    I1=cbind(0,diag(N))
+    I1=rbind(0,I1)
+    I2=rbind(1,diag(N))
+    A=lambd*I1+I2%*%I0%*%H
+    b=I2%*%I0%*%resp
+    betahat=rep(0,(N+1))
+    K1=cbind(0,Ker)
+    K1=rbind(0,K1)
+    K1[1,1]=1
+    yhat=H%*%betahat
+    loss=c()
+    d=-(A%*%betahat-b)
+    g_old=d
+    gnorm0=sum(g_old^2)
+    thd=tol*gnorm0
     repeat{
-      r=b-A%*%beta_old
-      alpha=as.numeric(t(r)%*%r/(t(r)%*%A%*%r))
-      betahat=beta_old+alpha*r
+      alpha1=t(d)%*%K1
+      alpha=as.numeric(alpha1%*%g_old/(alpha1%*%A%*%d))
+      betahat=betahat+alpha*d
       yhat=H%*%betahat
-      sv=resp*yhat<1
-      I0=I0[sv,sv]
-      A=2*(lambd*S+t(H)%*%I0%*%H)
-      b=2*t(H)%*%I0%*%resp
-      obj1=objective(classifier,betahat,Ker,resp,yhat,lambd)
-      loss=c(loss,obj1)
-      # if(all(sv1==sv)) break
-      if(abs(obj1-obj0)) break
+      sv1=resp*yhat<1
+      I0=diag(c(sv1))
+      A=lambd*I1+I2%*%I0%*%H
+      b=I2%*%I0%*%resp
+      g_new=-A%*%betahat+b
+      numerator=as.numeric(t(g_new)%*%K1%*%g_new)
+      denumerator=as.numeric(t(g_old)%*%K1%*%g_old)
+      d=g_new+numerator*d/denumerator
+      gnorm1=sum(g_new^2)
+      if(t>50 | all(sv==sv1) | gnorm1<thd) break
+      
       t=t+1
-      beta_old=betahat
-      sv1=sv
-      obj0=obj1
+      sv=sv1
+      g_old=g_new
     }
   }
   if(classifier=="Softmax"){}
