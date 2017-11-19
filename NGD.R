@@ -10,26 +10,37 @@ NGD<-function(X, #input data
   N=nrow(resp)
   K=ncol(resp)
   sv=rep(TRUE,N)
-  sv_new=sample(c(TRUE,FALSE),N,replace = T)
+   if(N>=1000){
+     N1=N%/%2
+     X1=X[1:N1,]
+     resp1=as.matrix(resp[1:N1,])
+     Ker1=Ker[1:N1,1:N1]
+     out=NGD(X1,resp1,Ker1,classifier,lambd,tol,epochs)
+     sv[1:N1]=out$sv
+  }
   betahat=c()
+  objCurve=c()
   t=1
   if(classifier=="SVM" & K==1){
     repeat{
       betahat=rep(0,N)
       intercept=0
       Ksv=Ker[sv,sv]
-      Isv=diag(sv)
       Ysv=c(0,resp[sv,])
-      IntMat=Ksv+lambd*Isv
+      IntMat=Ksv+lambd*diag(sum(sv))
       IntMat=rbind(1,IntMat)
       IntMat=cbind(1,IntMat)
       IntMat[1,1]=0
-      bsv=invMat(IntMat)%*%Ysv
+      bsv=solve(IntMat)%*%Ysv
       intercept=bsv[1]
       betahat[sv]=bsv[-1]
-      sv_new=(resp*(Ker%*%betahat+intercept)) <1
+      yhat=Ker%*%betahat+intercept
+      obj=objective(classifier,betahat =betahat,kerMat = Ker,y = resp,f_x = yhat,lambd = lambd)
+      objCurve=c(objCurve,obj)
+      sv_new=(resp*yhat) <1
+      if(all(sv_new==sv)|t>50) break
       sv=sv_new
-      if(all(sv_new==sv)) break
+      print(paste(round(as.numeric(obj),3),sum(sv)))
       t=t+1
     }
     betahat=c(intercept,betahat)
@@ -42,6 +53,7 @@ NGD<-function(X, #input data
       f_x=Ker%*%betahat_old+beta0_old
       yhat=softmax(f_x)
       obj=objective(classifier,betahat =betahat_old,kerMat = Ker,y = resp,f_x = yhat,lambd = lambd)
+      objCurve=c(objCurve,obj)
       grad_b=Ker%*%(lambd*betahat_old+yhat-resp)
       grad_b0=sum(yhat-resp)
       grad=c(grad_b0,grad_b)
@@ -69,5 +81,5 @@ NGD<-function(X, #input data
     sv_new=0
   }
   
-  return(list(betahat=betahat,n_iter=t,gradsErr=c(),lossCurve=c(),sv=sv_new))
+  return(list(betahat=betahat,n_iter=t,gradsErr=c(),lossCurve=objCurve,sv=sv_new))
 }
