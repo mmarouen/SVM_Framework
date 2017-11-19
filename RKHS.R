@@ -2,6 +2,8 @@
 
 RKHS<-function(Input, #covariates
               Y, #response vector
+              Xtest,#test matrix
+              yTest,#response test
               opType='Classification', #classification or regression
               classifier='SVM', #can use SVM or softmax classifiers
               kernel='linear', #kernel type
@@ -16,14 +18,26 @@ RKHS<-function(Input, #covariates
               optMode='NGD' #NGD=Newton-raphson optimization, CGD:Conjugate gradient descent
               ){
     
-  rsp=transformResponse(Y,opType)
+  t1=Sys.time()
+  rsp=transformResponse(Y,classifier,opType)
   resp=rsp$respMat
   X=as.matrix(Input)
+  XTest=NULL
+  resp1=NULL
+  kerT=NULL
+  if(!is.null(Xtest) & !is.null(yTest)){
+    XTest=as.matrix(Xtest)
+    rsp1=transformResponse(yTest,classifier,opType)
+    resp1=rsp1$respMat
+    kers=buildKernel(kernel,X,XTest,degree=degree,gamm=gamm)
+    kerT=kers$KerMat
+  }
   yhat=c()
+  yhatTest=c()
   betahat=c()
   betahatMat=matrix()
   lossCurve=c()
-  KerMat=buildKernel(kernel,X,X,resp,degree=degree,gamm=gamm)
+  KerMat=buildKernel(kernel,X,X,degree=degree,gamm=gamm)
   sv=c()
   
   Ker=KerMat$KerMat
@@ -31,7 +45,7 @@ RKHS<-function(Input, #covariates
   S=KerMat$S
   Ker=KerMat$KerMat
   
-  lambd=1/C
+  lambd=1/(2*C)
 
   if(opType=='Regression' & classifier=='LS'){
     inv=invMat(t(H)%*%H+lambd*S)
@@ -42,7 +56,7 @@ RKHS<-function(Input, #covariates
     if(optMode=='BGD') out=BGD(X,resp,H,S,classifier,lambd,learning_rate,tol,epochs,traceObj,gradCheck)
     if(optMode=='SGD') out=SGD(X,resp,H,S,classifier,lambd,tol,epochs,traceObj)
     if(optMode=='NGD') out=NGD(X,resp,Ker,classifier,lambd,tol,epochs)
-    if(optMode=='CGD') out=CGD(X,resp,Ker,H,S,classifier,lambd,tol,epochs)
+    if(optMode=='CGD') out=CGD(X,resp,XTest,resp1,Ker,kerT,H,S,classifier,lambd,tol,epochs)
     
     betahat=out$betahat
     lossCurve=out$lossCurve
@@ -54,8 +68,9 @@ RKHS<-function(Input, #covariates
   sv=out$sv
   out=transformOutput(f_x,opType,rsp$CL)
   yhat=out$yhat
+  t2=Sys.time()
   modelargs=list(kername=kernel,gamm=gamm,degree=degree,X=X,y=resp,epochs=epochs,
                  lambd=lambd,classes=rsp$CL,opType=opType)
   return(list(yhat=yhat,fx=f_x,yhatMat=out$yhatMat,beta=betahat,sv=sv,rkhsargs=modelargs,
-              lossCurve=lossCurve,n_iter=n_iter,gradsErr=gradsErr))
+              lossCurve=lossCurve,n_iter=n_iter,gradsErr=gradsErr,duration=t2-t1))
 }
