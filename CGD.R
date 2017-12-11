@@ -31,6 +31,7 @@ CGD<-function(X,resp,XT,respT, #respectively train matrix, response, test matrix
     loss=c()
     d=2*(-A%*%betahat+b)
     g_old=d
+    gnorm0=sum((K1%*%g_old)^2)
     thd=tol*gnorm0
     repeat{
       alpha1=t(d)%*%K1
