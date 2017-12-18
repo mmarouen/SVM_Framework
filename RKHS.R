@@ -1,4 +1,4 @@
-#Gateway function to implement solve svm
+#Gateway function to solve svm
 
 RKHS<-function(Input, #covariates
               Y, #response vector
